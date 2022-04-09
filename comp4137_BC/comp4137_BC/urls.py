@@ -16,8 +16,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from BC_demo import views as BC_demo
+from blockchain import views as Bblockchain
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', BC_demo.index),
+    path('get_chain', Bblockchain.get_chain, name="get_chain"),
+    path('mine_block', Bblockchain.mine_block, name="mine_block"),
+    path('add_transaction', Bblockchain.add_transaction, name="add_transaction"), #New
+    path('is_valid', Bblockchain.is_valid, name="is_valid"), #New
+    path('connect_node', Bblockchain.connect_node, name="connect_node"), #New
+    path('replace_chain', Bblockchain.replace_chain, name="replace_chain"), #New
 ]

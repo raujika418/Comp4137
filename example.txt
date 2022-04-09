@@ -1,0 +1,4 @@
+curl -s -X POST http://127.0.0.1:8000/connect_node \
+     -H "Content-Type: application/json" \
+     -d '{"nodes":["http://127.0.0.1:8001"]}' |  json_pp -json_opt pretty,canonical 
+     
