@@ -15,9 +15,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from BC_demo import views as BC_demo
+from django.urls import re_path as url
+from comp4137_BC.BC_demo import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', BC_demo.index),
+    path('', views.index),
+    url('^get_chain$', views.get_chain, name="get_chain"),
+    url('^mine_block$', views.mine_block, name="mine_block"),
+    url('^is_valid$', views.is_valid, name="is_valid"),
 ]
