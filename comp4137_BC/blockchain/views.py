@@ -10,7 +10,6 @@ from django.views.decorators.csrf import csrf_exempt #New
 
 
 class Blockchain:
-
     def __init__(self):
         self.chain = []
         self.transactions = [] #New
@@ -27,7 +26,6 @@ class Blockchain:
         self.transactions = [] #New
         self.chain.append(block)
         return block
-
     def get_last_block(self):
         return self.chain[-1]
 
