@@ -5,9 +5,7 @@ import string
 
 
 class TransactionInput(object):
-    """
-    An input for a transaction. This points to an output of another transaction
-    """
+
 
     def __init__(self, transaction, output_index):
         self.transaction = transaction
@@ -22,9 +20,7 @@ class TransactionInput(object):
 
 
 class TransactionOutput(object):
-    """
-    An output for a transaction. This specifies an amount and a recipient (wallet)
-    """
+
 
     def __init__(self, recipient_address, amount):
         self.recipient = recipient_address
@@ -39,9 +35,7 @@ class TransactionOutput(object):
 
 
 def compute_fee(inputs, outputs):
-    """
-    Compute the transaction fee by computing the difference between total input and total output
-    """
+
     total_in = sum(
         i.transaction.outputs[i.output_index].amount for i in inputs)
     total_out = sum(o.amount for o in outputs)
@@ -56,9 +50,7 @@ def random_string(length=10):
 
 class Transaction(object):
     def __init__(self, inputs, outputs):
-        """
-        Create a transaction spending money from the provided wallet
-        """
+
         self.inputs = inputs
         self.outputs = outputs
         self.id = hash(self)
@@ -81,10 +73,7 @@ def sha256(message):
 
 
 class GenesisTransaction(Transaction):
-    """
-    This is the first transaction which is a special transaction
-    with no input and 25 bitcoins output
-    """
+
 
     def __init__(self, recipient_address, amount=50):
         super().__init__([],[
