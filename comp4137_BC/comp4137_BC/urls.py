@@ -20,6 +20,9 @@ from blockchain import views as Bblockchain
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('get_chain', Bblockchain.get_chain, name="get_chain"),
-    path('mine_block', Bblockchain.mine_block, name="mine_block"),
-    path('is_valid', Bblockchain.is_valid, name="is_valid"), #New
+    path('mine_block', Bblockchain.mine_block, name="mine_block"), #mine a new block, detail can reference from powerpoint inv part in Network section
+    path('add_transaction', Bblockchain.add_transaction, name="add_transaction"), #add a transaction
+    path('is_valid', Bblockchain.is_valid, name="is_valid"), #check the hash value of chain is valid or not
+    path('connect_node', Bblockchain.connect_node, name="connect_node"), #add a new node in server memory, detail can reference from powerpoint getblock part in Network section
+    path('replace_chain', Bblockchain.replace_chain, name="replace_chain"), #New
 ]
