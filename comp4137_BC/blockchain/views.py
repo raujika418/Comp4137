@@ -10,14 +10,15 @@ from datetime import datetime
 
 from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt  # New
-#from blockchain import Network_Util
+# from blockchain import Network_Util
 
 
 class Blockchain:
     def __init__(self):
         self.chain = []
         self.transactions = []  # New
-        self.create_block(nonce=1, previous_block_hash='',block_info=[],data="")
+        self.create_block(nonce=1, previous_block_hash='',
+                          block_info=[], data="")
         self.nodes = set()  # New
 
     def hash(self, block_info):
@@ -26,17 +27,16 @@ class Blockchain:
         hashed_value = hashlib.sha256(encode).hexdigest()
         return hashed_value
 
-
     def create_block(self, nonce, previous_block_hash, data, block_info):
         current_block = {'index': len(self.chain) + 1,
-                              'timestamp': str(datetime.now().timestamp()),
-                              'nonce': nonce,
-                              'previous_block_hash': previous_block_hash,
-                              'hash': Blockchain.hash(self, block_info),
-                              'transactions': self.transactions,  # New
-                              'data': data,
-                              'Valid':""
-                              }
+                         'timestamp': str(datetime.now().timestamp()),
+                         'nonce': nonce,
+                         'previous_block_hash': previous_block_hash,
+                         'hash': Blockchain.hash(self, block_info),
+                         'transactions': self.transactions,  # New
+                         'data': data,
+                         'Valid': ""
+                         }
 
         self.transactions = []  # New
         self.chain.append(current_block)
@@ -48,19 +48,21 @@ class Blockchain:
     def proof_of_work(self, previous_nonce):
         new_nonce = 1
         check_nonce = False
+        print(previous_nonce)
         while check_nonce is False:
-            hash_operation = hashlib.sha256(str(new_nonce ** 2 - previous_nonce ** 2).encode()).hexdigest()
+            hash_operation = hashlib.sha256(
+                str(new_nonce ** 2 - previous_nonce ** 2).encode()).hexdigest()
             if hash_operation[:4] == '0000':
+                print(hash_operation)
+                print(new_nonce)
                 check_nonce = True
             else:
                 new_nonce += 1
         return new_nonce
 
-
     def hash(self, block):
         encoded_block = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
-
 
     def is_chain_valid(self, chain):
         previous_block = chain[0]
@@ -71,9 +73,10 @@ class Blockchain:
                 return False
             previous_nonce = previous_block['nonce']
             nonce = block['nonce']
-            
-            hash_operation = hashlib.sha256(str(nonce ** 2 - previous_nonce ** 2).encode()).hexdigest()
-            
+
+            hash_operation = hashlib.sha256(
+                str(nonce ** 2 - previous_nonce ** 2).encode()).hexdigest()
+
             if hash_operation[:4] != '0000':
                 return False
             previous_block = block
@@ -116,6 +119,7 @@ blockchain = Blockchain()
 node_address = str(uuid4()).replace('-', '')  # New
 root_node = 'e36f0158f0aed45b3bc755dc52ed4560d'  # New
 
+
 def is_block_valid(current_block, previous_block):
     if previous_block['index'] + 1 != current_block['index']:
         print('x')
@@ -129,7 +133,7 @@ def is_block_valid(current_block, previous_block):
         return False
     else:
         return True
-        
+
 
 # Mining a new block
 
@@ -138,11 +142,13 @@ def mine_block(request):
     if request.method == 'GET':
         previous_block = blockchain.get_last_block()
         previous_block_hash = previous_block['hash']
-        previous_nonce = previous_block['nonce']
-        nonce = blockchain.proof_of_work(previous_nonce)
+        # previous_nonce = previous_block['nonce']
+        nonce = blockchain.proof_of_work(int(previous_block['hash'],16))
         data = 'testing data'
-        block_info = [data, previous_block_hash, str(datetime.now().timestamp()), len(blockchain.chain) + 1]
-        block = blockchain.create_block(nonce, previous_block_hash, data, block_info)
+        block_info = [data, previous_block_hash, str(
+            datetime.now().timestamp()), len(blockchain.chain) + 1]
+        block = blockchain.create_block(
+            nonce, previous_block_hash, data, block_info)
         current_block = {
             'index': block['index'],
             'nonce': block['nonce'],
@@ -150,9 +156,10 @@ def mine_block(request):
             'hash': block['hash'],
             'previous_block_hash': block['previous_block_hash'],
             'Data': block['data'],
-            'Valid':""
+            'Valid': ""
         }
-        print(is_block_valid(current_block,previous_block))
+        print(is_block_valid(current_block, previous_block))
+        response = {}
         for node in list(blockchain.nodes):
             response_get = requests.get(f'http://{node}/replace_chain')
             if response_get.status_code != 200:
@@ -162,11 +169,15 @@ def mine_block(request):
             else:
                 if response_get.json()['message'] == "All good. The chain is the largest one.":
                     response = current_block
-                    response['message']= 'Congratulations, you just mined a block!'
+                    response['message'] = 'Congratulations, you just mined a block!'
+                    if(node == list(blockchain.nodes)[len(list(blockchain.nodes)) - 1]):
+                        return JsonResponse(response)
                 else:
                     response = {'message': 'json parse error'}
                     return JsonResponse(response)
-            return JsonResponse(response)
+        response = current_block
+        response['message'] = 'Congratulations, you just mined a block!'
+        return JsonResponse(response)
 
 # Getting the full Blockchain
 
@@ -204,7 +215,8 @@ def add_transaction(request):  # New
             return 'Some elements of the transaction are missing', HttpResponse(status=400)
         index = blockchain.add_transaction(received_json['sender'], received_json['receiver'], received_json['amount'],
                                            received_json['time'])
-        response = {'message': f'This transaction will be added to Block {index}'}
+        response = {
+            'message': f'This transaction will be added to Block {index}'}
     return JsonResponse(response)
 
 
