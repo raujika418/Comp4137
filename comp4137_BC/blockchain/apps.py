@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class BcDemoConfig(AppConfig):
+class BlockchainConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'BC_demo'
+    name = 'blockchain'

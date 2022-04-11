@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.urls import re_path as url
-from ..BC_demo import views
+from comp4137_BC.BC_demo import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
