@@ -103,6 +103,7 @@ root_node = 'e36f0158f0aed45b3bc755dc52ed4560d'  # New
 
 # Mining a new block
 
+
 def mine_block(request):
     if request.method == 'GET':
         previous_block = blockchain.get_last_block()
@@ -183,10 +184,10 @@ def connect_node(request):  # New
         node_detail_list = []
         for node in nodes:
             blockchain.add_node(node)
-            response = requests.get(f'http://{node}/get_chain')
-            if response.status_code == 200:
-                length = response.json()['length']
-                chain = response.json()['chain']
+            response_get = requests.get(f'{node}/get_chain')
+            if response_get.status_code == 200:
+                length = response_get.json()['length']
+                chain = response_get.json()['chain']
                 node_detail_list.append({
                     "host_ip": node,
                     "length": length,
@@ -196,7 +197,7 @@ def connect_node(request):  # New
 
         response = {'message': 'All the nodes are now connected. The Sudocoin Blockchain now contains the following nodes:',
                     'total_nodes': list(blockchain.nodes),
-                    'node_detail_list':node_detail_list
+                    'node_detail_list': node_detail_list
                     }
     return JsonResponse(response)
 
