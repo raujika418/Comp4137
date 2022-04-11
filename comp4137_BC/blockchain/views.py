@@ -26,6 +26,12 @@ class Blockchain:
         hashed_value = hashlib.sha256(block_information).hexdigest()
         return hashed_value
 
+    def hash(self, block_info):
+        block_information = json.dumps(block_info)
+        encode = block_information.encode('utf-8')
+        hashed_value = hashlib.sha256(encode).hexdigest()
+        return hashed_value
+
     def create_block(self, nonce, previous_block_hash, data, block_info, difficulty):
         current_block = {'index': len(self.chain) + 1,
                          'timestamp': datetime.now().timestamp(),
@@ -118,10 +124,13 @@ class Blockchain:
         max_length = len(self.chain)
         for node in network:
             response = requests.get(f'http://{node}/get_chain')
+
+            data = response.json()
+            print(str(data))
             if response.status_code == 200:
-                length = response.json()['length']
-                chain = response.json()['chain']
-                if length > max_length and self.is_chain_valid(chain):
+                length = data['length']
+                chain = data['chain']
+                if length > max_length:  # and self.is_chain_valid(chain):
                     max_length = length
                     longest_chain = chain
         if longest_chain:
@@ -182,7 +191,9 @@ def mine_block(request):
                     'message': "error, server return error code " + str(response_get.status_code)}
                 return JsonResponse(response)
             else:
-                if response_get.json()['message'] == "All good. The chain is the largest one.":
+                print(response_get.json()['message'])
+                if (response_get.json()['message'] == "All good. The chain is the largest one." or
+                    response_get.json()['message'] == "The nodes had different chains so the chain was replaced by the longest one."):
                     response = current_block
                     response['message'] = 'Congratulations, you just mined a block!'
                     if (node == list(blockchain.nodes)[len(list(blockchain.nodes)) - 1]):
@@ -225,7 +236,6 @@ def add_transaction(request):  # New
         transaction_keys = ['sender', 'receiver']
         if not all(key in received_json for key in transaction_keys):
             return 'Some elements of the transaction are missing', HttpResponse(status=400)
-        print("123")
         index = blockchain.add_transaction(
             received_json['sender'], received_json['receiver'])
         response = {
@@ -247,6 +257,7 @@ def connect_node(request):  # New
         node_detail_list = []
         for node in nodes:
             blockchain.add_node(node)
+            print(f'{node}/get_chain')
             response_get = requests.get(f'{node}/get_chain')
             if response_get.status_code == 200:
                 length = response_get.json()['length']
