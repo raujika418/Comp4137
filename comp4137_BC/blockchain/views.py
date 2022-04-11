@@ -88,7 +88,7 @@ def mine_block(request):
         previous_nonce = previous_block['nonce']
         data = 'testing data'
         block_info = [data, previous_block_hash, str(datetime.now().timestamp()), len(blockchain.chain) + 1]
-        nonce = blockchain.proof_of_work(block_info)
+        nonce = blockchain.proof_of_work(previous_block_hash)
         block = blockchain.create_block(nonce, previous_block_hash, data, block_info)
         current_block = {
             'index': block['index'],
