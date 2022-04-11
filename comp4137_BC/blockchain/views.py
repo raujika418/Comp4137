@@ -7,9 +7,10 @@ import requests
 from urllib.parse import urlparse
 from datetime import datetime
 from coden import hex_to_bin
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-
+from django.http import JsonResponse, HttpResponse, HttpRequest
+from django.views.decorators.csrf import csrf_exempt  # New
+from blockchain import Transaction_Util
+# from blockchain import Network_Util
 
 
 class Blockchain:
@@ -17,22 +18,22 @@ class Blockchain:
         self.chain = []
         self.transactions = []  # New
         self.create_block(nonce=1, previous_block_hash='',
-                          block_info=[], data="",difficulty=0)
+                          block_info=[], data="", difficulty=0)
         self.nodes = set()  # New
 
     def calculateHash(self, block_info):
-        block_information = json.dumps(block_info, sort_keys=True).encode()  #
+        block_information = json.dumps(block_info, sort_keys=True).encode()
         hashed_value = hashlib.sha256(block_information).hexdigest()
         return hashed_value
 
-    def create_block(self, nonce, previous_block_hash, data, block_info,difficulty):
+    def create_block(self, nonce, previous_block_hash, data, block_info, difficulty):
         current_block = {'index': len(self.chain) + 1,
                          'timestamp': datetime.now().timestamp(),
                          'nonce': nonce,
                          'previous_block_hash': previous_block_hash,
                          'hash': Blockchain.calculateHash(self, block_info),
                          'data': data,
-                         'difficulty':difficulty
+                         'difficulty': difficulty
                          }
 
         self.transactions = []  # New
@@ -69,7 +70,7 @@ class Blockchain:
         block_index = 1
         while block_index < len(chain):
             block = chain[block_index]
-            if block['previous_hash'] != self.hash(previous_block):
+            if block['previous_block_hash'] != self.hash(previous_block):
                 return False
             previous_nonce = previous_block['nonce']
             nonce = block['nonce']
@@ -82,11 +83,28 @@ class Blockchain:
             block_index += 1
         return True
 
-    def add_transaction(self, sender, receiver, amount, time):  # New
-        self.transactions.append({'sender': sender,
-                                  'receiver': receiver,
-                                  'amount': amount,
-                                  'time': str(datetime.datetime.now())})
+    # sender is the source transaction id
+    # receiver is multiple output
+    def add_transaction(self, sender, receiver):
+        transaction = Transaction_Util.Transaction(
+            [Transaction_Util.TransactionInput(
+                sender, len(self.transactions))],
+            list(map(lambda item: Transaction_Util.TransactionOutput(
+                item['recipient'], item['amount']), receiver))
+        )
+        self.transactions.append({'transaction': transaction.to_dict(),
+                                  'time': str(datetime.now()),
+                                  'id': transaction.id
+                                  })
+        previous_block = self.get_last_block()
+        return previous_block['index'] + 1
+
+    def add_coinbase_transaction(self, receiver):
+        transaction = Transaction_Util.GenesisTransaction(receiver)
+
+        self.transactions.append({'transaction': transaction.to_dict(),
+                                  'time': str(datetime.now()),
+                                  'id': transaction.id})
         previous_block = self.get_last_block()
         return previous_block['index'] + 1
 
@@ -136,14 +154,17 @@ def is_block_valid(current_block, previous_block):
 
 def mine_block(request):
     if request.method == 'GET':
+        blockchain.add_coinbase_transaction(node_address)
         previous_block = blockchain.get_last_block()
         previous_block_hash = previous_block['hash']
         previous_nonce = previous_block['nonce']
         nonce = blockchain.proof_of_work(previous_nonce)
-        data = 'testing data'
-        block_info = [data, previous_block_hash, str(datetime.now().timestamp()), len(blockchain.chain) + 1]
-        diffculty=4
-        block = blockchain.create_block(nonce, previous_block_hash, data, block_info,diffculty)
+        data = json.dumps(blockchain.transactions, sort_keys=True)
+        block_info = [data, previous_block_hash, str(
+            datetime.now().timestamp()), len(blockchain.chain) + 1]
+        diffculty = 4
+        block = blockchain.create_block(
+            nonce, previous_block_hash, data, block_info, diffculty)
         current_block = {
             'index': block['index'],
             'nonce': block['nonce'],
@@ -151,7 +172,7 @@ def mine_block(request):
             'hash': block['hash'],
             'previous_block_hash': block['previous_block_hash'],
             'data': block['data'],
-            'difficulty':block['difficulty']
+            'difficulty': block['difficulty']
         }
         response = {}
         for node in list(blockchain.nodes):
@@ -201,11 +222,12 @@ def is_valid(request):
 def add_transaction(request):  # New
     if request.method == 'POST':
         received_json = json.loads(request.body)
-        transaction_keys = ['sender', 'receiver', 'amount', 'time']
+        transaction_keys = ['sender', 'receiver']
         if not all(key in received_json for key in transaction_keys):
             return 'Some elements of the transaction are missing', HttpResponse(status=400)
-        index = blockchain.add_transaction(received_json['sender'], received_json['receiver'], received_json['amount'],
-                                           received_json['time'])
+        print("123")
+        index = blockchain.add_transaction(
+            received_json['sender'], received_json['receiver'])
         response = {
             'message': f'This transaction will be added to Block {index}'}
     return JsonResponse(response)
