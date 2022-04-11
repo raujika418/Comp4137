@@ -15,13 +15,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from django.urls import re_path as url
-from comp4137_BC.BC_demo import views
+from blockchain import views as Bblockchain
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.index),
-    url('^get_chain$', views.get_chain, name="get_chain"),
-    url('^mine_block$', views.mine_block, name="mine_block"),
-    url('^is_valid$', views.is_valid, name="is_valid"),
+    path('get_chain', Bblockchain.get_chain, name="get_chain"),
+    path('mine_block', Bblockchain.mine_block, name="mine_block"), #mine a new block, detail can reference from powerpoint inv part in Network section
+    path('add_transaction', Bblockchain.add_transaction, name="add_transaction"), #add a transaction
+    path('is_valid', Bblockchain.is_valid, name="is_valid"), #check the hash value of chain is valid or not
+    path('connect_node', Bblockchain.connect_node, name="connect_node"), #add a new node in server memory, detail can reference from powerpoint getblock part in Network section
+    path('replace_chain', Bblockchain.replace_chain, name="replace_chain"), #New
 ]

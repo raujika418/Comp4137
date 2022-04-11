@@ -7,36 +7,35 @@ import socket
 import requests
 from urllib.parse import urlparse
 from datetime import datetime
-
+from coden import hex_to_bin
 from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt  # New
-#from blockchain import Network_Util
+# from blockchain import Network_Util
 
 
 class Blockchain:
     def __init__(self):
         self.chain = []
         self.transactions = []  # New
-        self.create_block(nonce=1, previous_block_hash='',block_info=[],data="")
+        self.create_block(nonce=1, previous_block_hash='',
+                          block_info=[], data="")
         self.nodes = set()  # New
 
-    def hash(self, block_info):
-        block_information = json.dumps(block_info)
-        encode = block_information.encode('utf-8')
-        hashed_value = hashlib.sha256(encode).hexdigest()
-        return hashed_value
 
+    def calculateHash(self, block_info):
+        block_information = json.dumps(block_info,sort_keys = True).encode()#
+        hashed_value = hashlib.sha256(block_information).hexdigest()
+        return hashed_value
 
     def create_block(self, nonce, previous_block_hash, data, block_info):
         current_block = {'index': len(self.chain) + 1,
-                              'timestamp': str(datetime.now().timestamp()),
-                              'nonce': nonce,
-                              'previous_block_hash': previous_block_hash,
-                              'hash': Blockchain.hash(self, block_info),
-                              'transactions': self.transactions,  # New
-                              'data': data,
-                              'Valid':""
-                              }
+                         'timestamp': datetime.now().timestamp(),
+                         'nonce': nonce,
+                         'previous_block_hash': previous_block_hash,
+                         'hash': Blockchain.calculateHash(self, block_info),
+                         'data': data,
+                         'Valid': ""
+                         }
 
         self.transactions = []  # New
         self.chain.append(current_block)
@@ -45,21 +44,29 @@ class Blockchain:
     def get_last_block(self):
         return self.chain[-1]
 
+    def hashMatchesDifficulty(self, hash, difficulty):
+        hashInBinary = str(hex_to_bin(hash))
+        requiredPrefix = ''
+        for i in range(difficulty):
+            requiredPrefix += '0'
+        if hashInBinary.startswith(requiredPrefix):
+            return True
+        else:
+            return False
+
+
     def proof_of_work(self, previous_nonce):
         new_nonce = 1
         check_nonce = False
         while check_nonce is False:
-            hash_operation = hashlib.sha256(str(new_nonce ** 2 - previous_nonce ** 2).encode()).hexdigest()
+            hash_operation = hashlib.sha256(
+                str(new_nonce ** 2 - previous_nonce ** 2).encode()).hexdigest()
             if hash_operation[:4] == '0000':
                 check_nonce = True
             else:
                 new_nonce += 1
         return new_nonce
 
-
-    def hash(self, block):
-        encoded_block = json.dumps(block, sort_keys=True).encode()
-        return hashlib.sha256(encoded_block).hexdigest()
 
 
     def is_chain_valid(self, chain):
@@ -71,9 +78,10 @@ class Blockchain:
                 return False
             previous_nonce = previous_block['nonce']
             nonce = block['nonce']
-            
-            hash_operation = hashlib.sha256(str(nonce ** 2 - previous_nonce ** 2).encode()).hexdigest()
-            
+
+            hash_operation = hashlib.sha256(
+                str(nonce ** 2 - previous_nonce ** 2).encode()).hexdigest()
+
             if hash_operation[:4] != '0000':
                 return False
             previous_block = block
@@ -114,7 +122,8 @@ class Blockchain:
 blockchain = Blockchain()
 # Creating an address for the node running our server
 node_address = str(uuid4()).replace('-', '')  # New
-root_node = 'e36f0158f0aed45b3bc755dc52ed4560d'  # New
+root_node = '7512827ca39631df7b54e8a265ed158ab033eb50d954718aee11505dfcd5e85b'  # New
+
 
 def is_block_valid(current_block, previous_block):
     if previous_block['index'] + 1 != current_block['index']:
@@ -124,14 +133,11 @@ def is_block_valid(current_block, previous_block):
         print('y')
 
         return False
-    elif blockchain.hash(current_block) != current_block['hash']:
+    elif blockchain.calculateHash(current_block) != current_block['hash']:
         print('g')
         return False
     else:
         return True
-        
-
-# Mining a new block
 
 
 def mine_block(request):
@@ -152,7 +158,8 @@ def mine_block(request):
             'Data': block['data'],
             'Valid':""
         }
-        print(is_block_valid(current_block,previous_block))
+        print(is_block_valid(current_block, previous_block))
+        response = {}
         for node in list(blockchain.nodes):
             response_get = requests.get(f'http://{node}/replace_chain')
             if response_get.status_code != 200:
@@ -162,15 +169,19 @@ def mine_block(request):
             else:
                 if response_get.json()['message'] == "All good. The chain is the largest one.":
                     response = current_block
-                    response['message']= 'Congratulations, you just mined a block!'
+                    response['message'] = 'Congratulations, you just mined a block!'
+                    if(node == list(blockchain.nodes)[len(list(blockchain.nodes)) - 1]):
+                        return JsonResponse(response)
                 else:
                     response = {'message': 'json parse error'}
                     return JsonResponse(response)
-            return JsonResponse(response)
+        response = current_block
+        response['message'] = 'Congratulations, you just mined a block!'
+        return JsonResponse(response)
+
+
 
 # Getting the full Blockchain
-
-
 def get_chain(request):
     if request.method == 'GET':
         response = {'chain': blockchain.chain,
@@ -179,8 +190,6 @@ def get_chain(request):
 
 
 # Checking if the Blockchain is valid
-
-
 def is_valid(request):
     if request.method == 'GET':
         is_valid = blockchain.is_chain_valid(blockchain.chain)
@@ -204,7 +213,8 @@ def add_transaction(request):  # New
             return 'Some elements of the transaction are missing', HttpResponse(status=400)
         index = blockchain.add_transaction(received_json['sender'], received_json['receiver'], received_json['amount'],
                                            received_json['time'])
-        response = {'message': f'This transaction will be added to Block {index}'}
+        response = {
+            'message': f'This transaction will be added to Block {index}'}
     return JsonResponse(response)
 
 
