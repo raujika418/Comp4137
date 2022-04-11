@@ -1,9 +1,8 @@
-from django.shortcuts import render
+
 import datetime
 import hashlib
 import json
 from uuid import uuid4
-import socket
 import requests
 from urllib.parse import urlparse
 from datetime import datetime
@@ -19,22 +18,22 @@ class Blockchain:
         self.chain = []
         self.transactions = []  # New
         self.create_block(nonce=1, previous_block_hash='',
-                          block_info=[], data="")
+                          block_info=[], data="", difficulty=0)
         self.nodes = set()  # New
 
-    def calculateHash(self, block_info): 
+    def calculateHash(self, block_info):
         block_information = json.dumps(block_info, sort_keys=True).encode()
         hashed_value = hashlib.sha256(block_information).hexdigest()
         return hashed_value
 
-    def create_block(self, nonce, previous_block_hash, data, block_info):
+    def create_block(self, nonce, previous_block_hash, data, block_info, difficulty):
         current_block = {'index': len(self.chain) + 1,
                          'timestamp': datetime.now().timestamp(),
                          'nonce': nonce,
                          'previous_block_hash': previous_block_hash,
                          'hash': Blockchain.calculateHash(self, block_info),
                          'data': data,
-                         'Valid': ""
+                         'difficulty': difficulty
                          }
 
         self.transactions = []  # New
@@ -78,7 +77,6 @@ class Blockchain:
 
             hash_operation = hashlib.sha256(
                 str(nonce ** 2 - previous_nonce ** 2).encode()).hexdigest()
-
             if hash_operation[:4] != '0000':
                 return False
             previous_block = block
@@ -89,7 +87,8 @@ class Blockchain:
     # receiver is multiple output
     def add_transaction(self, sender, receiver):
         transaction = Transaction_Util.Transaction(
-            [Transaction_Util.TransactionInput(sender, len(self.transactions))],
+            [Transaction_Util.TransactionInput(
+                sender, len(self.transactions))],
             list(map(lambda item: Transaction_Util.TransactionOutput(
                 item['recipient'], item['amount']), receiver))
         )
@@ -163,18 +162,18 @@ def mine_block(request):
         data = json.dumps(blockchain.transactions, sort_keys=True)
         block_info = [data, previous_block_hash, str(
             datetime.now().timestamp()), len(blockchain.chain) + 1]
+        diffculty = 4
         block = blockchain.create_block(
-            nonce, previous_block_hash, data, block_info)
+            nonce, previous_block_hash, data, block_info, diffculty)
         current_block = {
             'index': block['index'],
             'nonce': block['nonce'],
             'timestamp': block['timestamp'],
             'hash': block['hash'],
             'previous_block_hash': block['previous_block_hash'],
-            'Data': block['data'],
-            'Valid': ""
+            'data': block['data'],
+            'difficulty': block['difficulty']
         }
-        print(is_block_valid(current_block, previous_block))
         response = {}
         for node in list(blockchain.nodes):
             response_get = requests.get(f'http://{node}/replace_chain')
@@ -186,7 +185,7 @@ def mine_block(request):
                 if response_get.json()['message'] == "All good. The chain is the largest one.":
                     response = current_block
                     response['message'] = 'Congratulations, you just mined a block!'
-                    if(node == list(blockchain.nodes)[len(list(blockchain.nodes)) - 1]):
+                    if (node == list(blockchain.nodes)[len(list(blockchain.nodes)) - 1]):
                         return JsonResponse(response)
                 else:
                     response = {'message': 'json parse error'}
@@ -209,10 +208,10 @@ def is_valid(request):
     if request.method == 'GET':
         is_valid = blockchain.is_chain_valid(blockchain.chain)
         if is_valid:
-            response = {'message': 'All good. The Blockchain is valid.'}
+            response = {'message': 'valid.'}
         else:
             response = {
-                'message': 'Houston, we have a problem. The Blockchain is not valid.'}
+                'message': 'invalid.'}
     return JsonResponse(response)
 
 
@@ -255,14 +254,15 @@ def connect_node(request):  # New
                 node_detail_list.append({
                     "host_ip": node,
                     "length": length,
-                    "last_block": chain[length-1]
+                    "last_block": chain[length - 1]
                 })
             # Network_Util.getblock(blockchain, node)
 
-        response = {'message': 'All the nodes are now connected. The Sudocoin Blockchain now contains the following nodes:',
-                    'total_nodes': list(blockchain.nodes),
-                    'node_detail_list': node_detail_list
-                    }
+        response = {
+            'message': 'Nodes are connected',
+            'total_nodes': list(blockchain.nodes),
+            'node_detail_list': node_detail_list
+        }
     return JsonResponse(response)
 
 
