@@ -21,8 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('get_chain', Bblockchain.get_chain, name="get_chain"),
     path('mine_block', Bblockchain.mine_block, name="mine_block"),
-    path('add_transaction', Bblockchain.add_transaction, name="add_transaction"), #New
     path('is_valid', Bblockchain.is_valid, name="is_valid"), #New
-    path('connect_node', Bblockchain.connect_node, name="connect_node"), #New
-    path('replace_chain', Bblockchain.replace_chain, name="replace_chain"), #New
 ]
