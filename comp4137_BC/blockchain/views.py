@@ -142,8 +142,8 @@ def mine_block(request):
     if request.method == 'GET':
         previous_block = blockchain.get_last_block()
         previous_block_hash = previous_block['hash']
-        # previous_nonce = previous_block['nonce']
-        nonce = blockchain.proof_of_work(int(previous_block['hash'],16))
+        previous_nonce = previous_block['nonce']
+        nonce = blockchain.proof_of_work(previous_nonce)
         data = 'testing data'
         block_info = [data, previous_block_hash, str(
             datetime.now().timestamp()), len(blockchain.chain) + 1]
